@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ToDoList</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .completed {
+      color: gray;
+      text-decoration: line-through;
+    }
+    .used {
+      color: gray;
+      text-decoration: line-through;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>ToDoList</h1>
+    <div>
+      <h2>Tasks</h2>
+      <ul>
+        <li v-for="task in tasks" :key="task.id" :class="{ completed: task.completed }">
+          <span>{{ task.name }} ({{ task.points }} points)</span>
+          <button @click="completeTask(task.id)">Complete</button>
+          <button @click="deleteTask(task.id)">Delete</button>
+        </li>
+      </ul>
+      <input v-model="newTaskName" placeholder="New task">
+      <input v-model.number="newTaskPoints" type="number" placeholder="Points">
+      <button @click="addTask">Add Task</button>
+    </div>
+    <div>
+      <h2>Rewards</h2>
+      <ul>
+        <li v-for="reward in rewards" :key="reward.id" :class="{ used: reward.used }">
+          <span>{{ reward.name }} ({{ reward.points }} points)</span>
+          <button @click="useReward(reward.id)">Use</button>
+          <button @click="deleteReward(reward.id)">Delete</button>
+        </li>
+      </ul>
+      <input v-model="newRewardName" placeholder="New reward">
+      <input v-model.number="newRewardPoints" type="number" placeholder="Points">
+      <button @click="addReward">Add Reward</button>
+    </div>
+    
+    <div>
+      <h2>Achievement Points</h2>
+      <p>{{ points }}</p>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        tasks: [],
+        rewards: [],
+        points: 0,
+        newTaskName: '',
+        newTaskPoints: 0,
+        newRewardName: '',
+        newRewardPoints: 0
+      },
+      created() {
+        this.fetchTasks();
+        this.fetchRewards();
+        this.fetchPoints();
+      },
+      methods: {
+        fetchTasks() {
+          axios.get('/tasks').then(response => {
+            this.tasks = response.data;
+          }).catch(error => {
+            console.error('Error fetching tasks:', error);
+          });
+        },
+        fetchRewards() {
+          axios.get('/rewards').then(response => {
+            this.rewards = response.data;
+          }).catch(error => {
+            console.error('Error fetching rewards:', error);
+          });
+        },
+        fetchPoints() {
+          axios.get('/points').then(response => {
+            this.points = response.data.total_points;
+          }).catch(error => {
+            console.error('Error fetching points:', error);
+          });
+        },
+        addTask() {
+          axios.post('/tasks', { name: this.newTaskName, points: parseInt(this.newTaskPoints) }).then(response => {
+            this.tasks.push(response.data);
+            this.newTaskName = '';
+            this.newTaskPoints = 0;
+            this.fetchPoints();
+          }).catch(error => {
+            console.error('Error adding task:', error);
+          });
+        },
+        completeTask(id) {
+          const task = this.tasks.find(task => task.id === id);
+          axios.put(`/tasks/${id}`, { completed: !task.completed }).then(response => {
+            task.completed = !task.completed;
+            this.fetchPoints();
+          }).catch(error => {
+            console.error('Error completing task:', error);
+          });
+        },
+        deleteTask(id) {
+          axios.delete(`/tasks/${id}`).then(response => {
+            this.tasks = this.tasks.filter(task => task.id !== id);
+            this.fetchPoints();
+          }).catch(error => {
+            console.error('Error deleting task:', error);
+          });
+        },
+        addReward() {
+          axios.post('/rewards', { name: this.newRewardName, points: parseInt(this.newRewardPoints) }).then(response => {
+            this.rewards.push(response.data);
+            this.newRewardName = '';
+            this.newRewardPoints = 0;
+            this.fetchPoints();
+          }).catch(error => {
+            console.error('Error adding reward:', error);
+          });
+        },
+        useReward(id) {
+          const reward = this.rewards.find(reward => reward.id === id);
+          axios.put(`/rewards/${id}`, { used: !reward.used }).then(response => {
+            reward.used = !reward.used;
+            this.fetchPoints();
+          }).catch(error => {
+            console.error('Error using reward:', error);
+          });
+        },
+        deleteReward(id) {
+          axios.delete(`/rewards/${id}`).then(response => {
+            this.rewards = this.rewards.filter(reward => reward.id !== id);
+            this.fetchPoints();
+          }).catch(error => {
+            console.error('Error deleting reward:', error);
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>
